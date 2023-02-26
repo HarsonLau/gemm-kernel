@@ -1,15 +1,34 @@
-#include "utils.h"
+#include "common/utils.h"
+#include "microbench/latency.h"
 #include <cstdio>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
-    thread_bind(0);
+    // arguments : cpuid looptime (double)freq
+    // parse arguments
+    if(argc != 4){
+        fprintf(stderr, "Usage: %s cpuid looptime (double)freq\n", argv[0]);
+        exit(0);
+    }
+    int cpuid = atoi(argv[1]);
+    double looptime = atof(argv[2]);
+    double freq = atof(argv[3]);
+
+    thread_bind(cpuid);
+
+    //warm up
+    latency_test(looptime);
 
     struct timespec start, end;
-    clock_gettime(CLOCK_REALTIME, &start);
-    auto ptr = page_alloc(1024);
-    clock_gettime(CLOCK_REALTIME, &end);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+    latency_test((long long )looptime);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
 
-    printf("Time: %lf\n", get_time(&start, &end));
-    page_free(ptr, 1024);
+    double time = get_time(&start, &end);
+    printf("loop time : %lf \n",looptime);
+    printf("time: %lf s\n", time);
+
+    printf("latency: %lf cycles\n", time* freq /(looptime * 10.0));
+
   return 0;
 }
